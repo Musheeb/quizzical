@@ -8,6 +8,9 @@ import { useState, useEffect } from "react";
 
 export default function Quiz() {
   const [data, setData] = useState([]);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [gameKey, setGameKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     async function fetchQuiz() {
       const quizData = await quiz();
@@ -26,14 +29,56 @@ export default function Quiz() {
           .sort((a, b) => a.sort - b.sort)
           .map(({ sort, ...rest }) => rest),
       }));
-      console.log(formattedData);
+      // console.log(formattedData);
       setData(formattedData);
+      setIsLoading(false);
     }
     fetchQuiz();
-  }, []);
+  }, [gameKey]);
 
-  function selectOption(id) {
-    console.log("clicked Id - ", id);
+  function selectOption(questionId, optionId) {
+    setData((prevData) => {
+      return prevData.map((quizData) => {
+        if (quizData.id === questionId) {
+          return {
+            ...quizData,
+            options: quizData.options.map((quizItem) => {
+              if (quizItem.id === optionId) {
+                return {
+                  ...quizItem,
+                  isHeld: !quizItem.isHeld,
+                };
+              } else {
+                return { ...quizItem, isHeld: false };
+              }
+            }),
+          };
+        } else {
+          return {
+            ...quizData,
+          };
+        }
+      });
+    });
+  }
+
+  function showAnswers() {
+    setShowAnswer((prevValue) => !prevValue);
+  }
+
+  function getCorrectAnswersCount(answers) {
+    const correctAnswerCount = answers.filter((quizData) => {
+      const heldAnswerByUser = quizData.options.find((option) => option.isHeld);
+      return (
+        heldAnswerByUser && quizData.correct_answer === heldAnswerByUser.value
+      );
+    }).length;
+    return correctAnswerCount;
+  }
+
+  function playAgain() {
+    setGameKey((prevGameKey) => prevGameKey + 1);
+    setShowAnswer(false);
   }
 
   return (
@@ -43,6 +88,12 @@ export default function Quiz() {
         alt="yellow-blob"
         className="quiz__blob--yellow"
       />
+      {isLoading && (
+        <div className="quiz-loader">
+          <div className="spinner"></div>
+          {/* <p className="quiz__loader--paragraph">Loading questions.....</p> */}
+        </div>
+      )}
       {data.map((quizData) => {
         return (
           <Question
@@ -51,11 +102,27 @@ export default function Quiz() {
             question={quizData.question}
             options={quizData.options}
             correctAnswer={quizData.correct_answer}
-            selectOption={() => selectOption(quizData.id)}
+            selectOption={selectOption}
+            answerShowed={showAnswer}
           />
         );
       })}
-      <button className="quiz__button--answers">Check answers</button>
+      {data.length > 0 &&
+        (showAnswer ? (
+          <div className="quiz__show__answers--section">
+            <p className="quiz__show_answers--paragraph">
+              You scored {getCorrectAnswersCount(data)}/{data.length} correct
+              answers
+            </p>
+            <button className="quiz__button--answers" onClick={playAgain}>
+              Play again
+            </button>
+          </div>
+        ) : (
+          <button className="quiz__button--answers" onClick={showAnswers}>
+            Check answers
+          </button>
+        ))}
       <img src="/blob-blue.png" alt="blue-blob" className="quiz__blob--blue" />
     </div>
   );

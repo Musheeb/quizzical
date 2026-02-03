@@ -7,6 +7,10 @@
   /* flex-wrap: wrap; */
 }
 
+.question__container--individual {
+  margin-right: auto;
+}
+
 .question__container--options {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
